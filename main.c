@@ -30,8 +30,8 @@ AN=0//AutoNext
 
 
 
-static bool SaveStorageValue(unsigned int position, int value);
-static int LoadStorageValue(unsigned int position);
+//static bool SaveStorageValue(unsigned int position, int value);
+//static int LoadStorageValue(unsigned int position);
 
 
 int main(void)
@@ -89,9 +89,11 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 				currentPage++;
 				if(currentThikr==AM){
                    	page[currentPage].words=LoadTexture(TextFormat("Athkar-AlMasa(Evening-Athkar)/page%i.png",currentPage));
+			if(currentPage>0)
 			UnloadTexture(page[currentPage-1].words);
 				}else if(currentThikr==AS){
                    	page[currentPage].words=LoadTexture(TextFormat("Athkar-AsSabah(Morning Athkar)/page%i.png",currentPage));
+			if(currentPage>0)
 			UnloadTexture(page[currentPage-1].words);
 				}
 			}
@@ -103,10 +105,10 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 				currentPage--;
 				if(currentThikr==AM){
                    	page[currentPage].words=LoadTexture(TextFormat("Athkar-AlMasa(Evening-Athkar)/page%i.png",currentPage));
-			UnloadTexture(page[currentPage-1].words);
+			UnloadTexture(page[currentPage+1].words);
 				}else if(currentThikr==AS){
                    	page[currentPage].words=LoadTexture(TextFormat("Athkar-AsSabah(Morning Athkar)/page%i.png",currentPage));
-			UnloadTexture(page[currentPage-1].words);
+			UnloadTexture(page[currentPage+1].words);
 				}
 			}
 
@@ -116,7 +118,7 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 	} 
 
-	if(IsKeyPressed(KEY_B)&&onMenu==false)
+	if(IsKeyPressed(KEY_B))
 	{
 	onMenu=true;
 	currentPage=0;
@@ -160,10 +162,12 @@ while (!WindowShouldClose())    // Detect window close button or ESC key
 
 BeginDrawing();
 ClearBackground(BLACK);
-if(onMenu)
+if(onMenu){
 DrawTexture(bG,0,0,WHITE);
+}
 if(currentThikr==ST&&!onMenu)
 	DrawTexture(sbG,0,0,WHITE);
+
 if(onMenu) {
    GuiSetState(STATE_NORMAL); if (GuiButton((Rectangle){ screenWidth/2.0f-175, screenHeight/2.0f-30, 175, 30 }, "Athkar-AsSabah(Morning Athkar)")) {
   onMenu=false;
@@ -298,92 +302,3 @@ return 0;
 
 // Load integer value from storage file (from defined position)
 // NOTE: If requested position could not be found, value 1 is returned
-int LoadStorageValue(unsigned int position)
-{
-    int value = 1;
-    unsigned int dataSize = 0;
-    unsigned char *fileData = LoadFileData(STORAGE_DATA_FILE, &dataSize);
-
-    if (fileData != NULL)
-    {
-        if (dataSize < (position*4)) TraceLog(LOG_WARNING, "FILEIO: [%s] Failed to find storage position: %i", STORAGE_DATA_FILE, position);
-        else
-        {
-            int *dataPtr = (int *)fileData;
-            value = dataPtr[position];
-        }
-
-        UnloadFileData(fileData);
-
-        TraceLog(LOG_INFO, "FILEIO: [%s] Loaded storage value: %i", STORAGE_DATA_FILE, value);
-    }
-
-    return value;
-}
-    bool SaveStorageValue(unsigned int position, int value)
-{
-    bool success = false;
-    unsigned int dataSize = 0;
-    unsigned int newDataSize = 0;
-    unsigned char *fileData = LoadFileData(STORAGE_DATA_FILE, &dataSize);
-    unsigned char *newFileData = NULL;
-
-    if (fileData != NULL)
-    {
-        if (dataSize <= (position*sizeof(int)))
-        {
-            // Increase data size up to position and store value
-            newDataSize = (position + 1)*sizeof(int);
-            newFileData = (unsigned char *)RL_REALLOC(fileData, newDataSize);
-
-            if (newFileData != NULL)
-            {
-                // RL_REALLOC succeded
-                int *dataPtr = (int *)newFileData;
-                dataPtr[position] = value;
-            }
-            else
-            {
-                // RL_REALLOC failed
-                TraceLog(LOG_WARNING, "FILEIO: [%s] Failed to realloc data (%u), position in bytes (%u) bigger than actual file size", STORAGE_DATA_FILE, dataSize, position*sizeof(int));
-
-                // We store the old size of the file
-                newFileData = fileData;
-                newDataSize = dataSize;
-            }
-        }
-        else
-        {
-            // Store the old size of the file
-            newFileData = fileData;
-            newDataSize = dataSize;
-
-            // Replace value on selected position
-            int *dataPtr = (int *)newFileData;
-            dataPtr[position] = value;
-        }
-
-        success = SaveFileData(STORAGE_DATA_FILE, newFileData, newDataSize);
-        RL_FREE(newFileData);
-
-        TraceLog(LOG_INFO, "FILEIO: [%s] Saved storage value: %i", STORAGE_DATA_FILE, value);
-    }
-    else
- {
-        TraceLog(LOG_INFO, "FILEIO: [%s] File created successfully", STORAGE_DATA_FILE);
-
-        dataSize = (position + 1)*sizeof(int);
-        fileData = (unsigned char *)RL_MALLOC(dataSize);
-        int *dataPtr = (int *)fileData;
-        dataPtr[position] = value;
-
-        success = SaveFileData(STORAGE_DATA_FILE, fileData, dataSize);
-        UnloadFileData(fileData);
-
-        TraceLog(LOG_INFO, "FILEIO: [%s] Saved storage value: %i", STORAGE_DATA_FILE, value);
-    }
-
-    return success;
-}
-
-
